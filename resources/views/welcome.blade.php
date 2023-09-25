@@ -1,17 +1,7 @@
-@extends('layout')
-
-@section('title')
-    home
-@endsection
-
-@section('banner')
-    <h1>Welcome</h1>
-@endsection
+@extends('layouts.app')
 
 @section('content')
-    <p>Content text</p>
-@endsection
-
-@section('footer')
-    <h1>Doei</h1>
+    <div class="container">
+        <h1>HALLO</h1>
+    </div>
 @endsection
