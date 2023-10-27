@@ -11,7 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
+        Schema::table('games', function (Blueprint $table) {
+            $table->tinyInteger('accepted')->nullable()->change();
+            $table->tinyInteger('score_player_one')->nullable()->change();
+            $table->tinyInteger('score_player_two')->nullable()->change();
+        });
     }
 
     /**

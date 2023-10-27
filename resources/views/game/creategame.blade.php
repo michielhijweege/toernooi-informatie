@@ -2,18 +2,21 @@
 
 @section('content')
 
-    <form action="{{ route('games.store') }}" method="POST">
+    <form action="{{ route('gamestore') }}" method="POST">
         @csrf
-        <label for="vs">Titel:</label>
-        <input type="text" name="vs" id="vsuser"><br>
+        <label for="opponent">Opponent:</label>
+        <input type="text" name="opponent" id="opponent" value="{{ old('opponent') }}"><br>
+        @error('opponent')
+        <p class="text-danger">{{ $message }}</p>
+        @enderror
 
-        <label for="release_date">Release Datum:</label>
-        <input type="date" name="release_date" id="release_date"><br>
+        <label for="game_date">Game Datum:</label>
+        <input type="date" name="game_date" id="game_date" value="{{ old('game_date') }}"><br>
+        @error('game_date')
+        <p class="text-danger">{{ $message }}</p>
+        @enderror
 
-        <label for="rating">Beoordeling:</label>
-        <input type="number" name="rating" id="rating"><br>
-
-        <button type="submit">Opslaan</button>
+        <button type="submit">Send</button>
     </form>
 
 @endsection
