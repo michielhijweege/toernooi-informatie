@@ -1,5 +1,4 @@
 @extends('layouts.app')
-
 @section('content')
     <div class="container">
         <h1>your active games</h1>
@@ -10,6 +9,7 @@
                 <th scope="col">player two</th>
                 <th scope="col">game date</th>
                 <th scope="col">cancel</th>
+                <th scope="col">update</th>
             </tr>
             </thead>
             <tbody>
@@ -24,6 +24,14 @@
                             <input name=id id="id" type="hidden" value="{{$gameacitve->id}}">
                             <button class="btn btn-danger" type="submit">Cancel</button>
                         </form>
+                    </td><td>
+                        @if($gameacitve->player_one_name == Auth::user()->name)
+                        <form action="{{ route('updategame') }}" method="POST">
+                            @csrf
+                            <input name=id id="id" type="hidden" value="{{$gameacitve->id}}">
+                            <button class="btn btn-warning" type="submit">Update</button>
+                        </form>
+                        @endif
                     </td>
                 </tr>
             @endforeach

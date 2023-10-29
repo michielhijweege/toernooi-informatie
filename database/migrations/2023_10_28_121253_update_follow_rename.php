@@ -11,12 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('follow', function (Blueprint $table) {
-            $table->id();
-            $table->tinyInteger('player_id');
-            $table->tinyInteger('game_id');
-            $table->timestamps();
-        });
+        Schema::rename('follow', 'follows');
     }
 
     /**

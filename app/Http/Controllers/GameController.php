@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Follow;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -26,6 +27,14 @@ class GameController extends Controller
         $user1input = $request->input('user1');
         $user2input = $request->input('user2');
         $dateinput = $request->input('date');
+        $followStatus = $request->input('followStatus');
+
+        $controlledform = $request->validate([
+            'user1',
+            'user2',
+            'date',
+            'followStatus'
+        ]);
 
         $yesterday = Carbon::yesterday();
         $games = Game::where('game_date', '>', $yesterday)
@@ -36,19 +45,39 @@ class GameController extends Controller
             ->orderBy('game_date', 'asc');
 
         if ($user1input) {
-            $games->where('player_one.name', 'LIKE', "%$user1input%");
+            $games->where(function ($games) use ($user1input) {
+                $games->where('player_one.name', '=', "$user1input")
+                    ->orWhere('player_two.name', '=', "$user1input");
+            });
         }
 
         if ($user2input) {
-            $games->where('player_two.name', 'LIKE', "%$user2input%");
+            $games->where(function ($games) use ($user2input) {
+                $games->where('player_one.name', '=', "$user2input")
+                    ->orWhere('player_two.name', '=', "$user2input");
+            });
         }
 
         if ($dateinput) {
             $games->whereDate('game_date', '=', $dateinput);
         }
 
+        $thisuserID = Auth::user()->id;
+        $followinggames = Follow::where('user_id', '=', $thisuserID)
+            ->pluck('game_id')
+            ->all();
+
+        // Filter by follow status
+        if ($followStatus == '1') {
+            $games->whereIn('games.id', $followinggames);
+        }
+        if ($followStatus == '2') {
+            $games->whereNotIn('games.id', $followinggames);
+        }
+
         $games = $games->get();
-        return view('game/game', compact('games'));
+
+        return view('game/game', compact('games', 'followinggames'));
     }
 
     /**
@@ -56,7 +85,15 @@ class GameController extends Controller
      */
     public function create()
     {
-        return view('game/creategame');
+        $thisuserID = Auth::user()->id;
+        $games = Game::where(function ($query) use ($thisuserID) {
+            $query->where('player_id_one', $thisuserID)
+                ->orWhere('player_id_two', $thisuserID);
+        })->get();
+
+        $resultCount = $games->count();
+
+        return view('game/creategame', compact('games', 'resultCount'));
     }
 
     /**
@@ -73,6 +110,10 @@ class GameController extends Controller
         ]);
 
         $user = User::where('name', $request['opponent'])->first();
+        if (!$user) {
+            return back();
+        }
+
         $uservsId = $user->id;
 
         $game = new Game();
@@ -107,7 +148,7 @@ class GameController extends Controller
         $thisuserID = Auth::user()->id;
 
         $controlledform = $request->validate([
-            'accept' => 'required|max:1'
+            'accept' => 'required|numeric'
         ]);
 
         $game = Game::where('id', $request['id']) // Use the provided ID to find the specific game
@@ -126,6 +167,28 @@ class GameController extends Controller
             return redirect()->route('yourgame')->with('error', 'Game not found or you do not have permission to update it.');
         }
     }
+    public function updatepage(Request $request)
+    {
+        $game = Game::where('id', '=', $request->input('id'))->first();
+
+        return view('game/updategame', compact('game'));
+    }
+
+    public function updatescore(Request $request)
+    {
+        $controlledform = $request->validate([
+            'id' => 'required|numeric',
+            'score1' => 'required|numeric',
+            'score2' => 'required|numeric'
+        ]);
+
+        $game = Game::where('id', '=', $request->input('id'))
+            ->update([
+                'score_player_one' => $request['score1'],
+                'score_player_two' => $request['score2'],
+            ]);
+        return redirect()->route('yourgame');
+    }
 
     /**
      * Remove the specified resource from storage.
@@ -135,6 +198,9 @@ class GameController extends Controller
         $thisuserID = Auth::user()->id;
 
         var_dump($request->all());
+        $controlledform = $request->validate([
+            'id' => 'required|numeric'
+        ]);
 
         $game = Game::where('id', '=', $request['id'])
             ->where(function ($query) use ($thisuserID) {
@@ -142,5 +208,34 @@ class GameController extends Controller
                     ->orWhere('player_id_two', $thisuserID);
             })->delete();
         return redirect()->route('yourgame');
+    }
+
+    public function followgame(Request $request) {
+        $thisuserID = Auth::user()->id;
+
+        var_dump($request->all());
+
+        $controlledform = $request->validate([
+            'gameid' => 'required|numeric'
+        ]);
+
+        // Check if the user is already following the game
+        $userGame = Follow::where('user_id', $thisuserID)
+            ->where('game_id', $request['gameid'])
+            ->first();
+
+        if (!$userGame)
+        {
+            // User is not following, so create a new relationship
+            $follow = new Follow();
+            $follow->user_id= $thisuserID;
+            $follow->game_id= $request['gameid'];
+            $follow->save();
+        }
+        else
+        {
+            $userGame->delete();
+        }
+        return redirect()->back();
     }
 }
